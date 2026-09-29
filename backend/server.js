@@ -40,7 +40,9 @@ if (!process.env.JWT_SECRET) {
 mongoose.connection.on('connected', () => { databaseState = 'connected'; });
 mongoose.connection.on('disconnected', () => { databaseState = 'disconnected'; });
 
-app.listen(port, () => console.log(`Vibely API listening on http://localhost:${port}`));
+app.listen(port, '0.0.0.0', () => {
+  console.log(`Vibely API listening on port ${port}`);
+});
 connectDatabase()
   .then(() => { databaseState = 'connected'; })
   .catch((error) => {
