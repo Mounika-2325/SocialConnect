@@ -1,6 +1,9 @@
 import axios from 'axios';
 
-const api = axios.create({ baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api', timeout: 12000 });
+const apiBaseUrl = new URL(import.meta.env.VITE_API_URL || 'http://localhost:5000/api');
+const apiBasePath = apiBaseUrl.pathname.replace(/\/+$/, '');
+if (!apiBasePath.endsWith('/api')) apiBaseUrl.pathname = `${apiBasePath}/api`;
+const api = axios.create({ baseURL: apiBaseUrl.toString().replace(/\/$/, ''), timeout: 12000 });
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('socialconnect-token');
   if (token) config.headers.Authorization = `Bearer ${token}`;
