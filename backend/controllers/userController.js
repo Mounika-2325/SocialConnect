@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import User from '../models/User.js';
 import Post from '../models/Post.js';
 import Notification from '../models/Notification.js';
@@ -13,6 +14,9 @@ export async function searchUsers(req, res) {
 }
 
 export async function getUser(req, res) {
+  if (!mongoose.isValidObjectId(req.params.id)) {
+    return res.status(404).json({ message: 'Profile not found.' });
+  }
   const user = await User.findById(req.params.id).select(fields);
   if (!user || !user.isVerified) return res.status(404).json({ message: 'Profile not found.' });
   const [posts, isFollowing] = await Promise.all([
@@ -33,6 +37,9 @@ export async function updateProfile(req, res) {
 
 async function changeFollow(req, res, shouldFollow) {
   if (String(req.user._id) === req.params.id) return res.status(400).json({ message: 'You cannot follow yourself.' });
+  if (!mongoose.isValidObjectId(req.params.id)) {
+    return res.status(404).json({ message: 'User not found.' });
+  }
   const target = await User.findById(req.params.id);
   if (!target || !target.isVerified) return res.status(404).json({ message: 'User not found.' });
   if (shouldFollow) {
@@ -48,6 +55,9 @@ export const followUser = (req, res) => changeFollow(req, res, true);
 export const unfollowUser = (req, res) => changeFollow(req, res, false);
 
 export async function getFollowList(req, res) {
+  if (!mongoose.isValidObjectId(req.params.id)) {
+    return res.status(404).json({ message: 'Profile not found.' });
+  }
   const field = req.params.list === 'followers' ? 'followers' : 'following';
   const user = await User.findById(req.params.id).select(field).populate(field, fields);
   if (!user) return res.status(404).json({ message: 'Profile not found.' });

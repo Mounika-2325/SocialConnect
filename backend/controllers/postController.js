@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import Post from '../models/Post.js';
 import Comment from '../models/Comment.js';
 import Notification from '../models/Notification.js';
@@ -22,6 +23,9 @@ export async function createPost(req, res) {
 }
 
 export async function deletePost(req, res) {
+  if (!mongoose.isValidObjectId(req.params.id)) {
+    return res.status(404).json({ message: 'Post not found.' });
+  }
   const post = await Post.findById(req.params.id);
   if (!post) return res.status(404).json({ message: 'Post not found.' });
   if (String(post.author) !== String(req.user._id)) return res.status(403).json({ message: 'Only the post owner can delete this post.' });
@@ -30,6 +34,9 @@ export async function deletePost(req, res) {
 }
 
 export async function toggleLike(req, res) {
+  if (!mongoose.isValidObjectId(req.params.id)) {
+    return res.status(404).json({ message: 'Post not found.' });
+  }
   const post = await Post.findById(req.params.id).select('author likes');
   if (!post) return res.status(404).json({ message: 'Post not found.' });
   const liked = !post.likes.some((id) => String(id) === String(req.user._id));
@@ -42,12 +49,18 @@ export async function toggleLike(req, res) {
 }
 
 export async function listComments(req, res) {
+  if (!mongoose.isValidObjectId(req.params.id)) {
+    return res.status(404).json({ message: 'Post not found.' });
+  }
   if (!await Post.exists({ _id: req.params.id })) return res.status(404).json({ message: 'Post not found.' });
   const comments = await Comment.find({ post: req.params.id }).sort({ createdAt: 1 }).populate('author', authorFields);
   res.json(comments);
 }
 
 export async function createComment(req, res) {
+  if (!mongoose.isValidObjectId(req.params.id)) {
+    return res.status(404).json({ message: 'Post not found.' });
+  }
   const text = req.body.text;
   const post = await Post.findById(req.params.id);
   if (!post) return res.status(404).json({ message: 'Post not found.' });
@@ -59,6 +72,9 @@ export async function createComment(req, res) {
 }
 
 export async function deleteComment(req, res) {
+  if (!mongoose.isValidObjectId(req.params.id)) {
+    return res.status(404).json({ message: 'Comment not found.' });
+  }
   const comment = await Comment.findById(req.params.id);
   if (!comment) return res.status(404).json({ message: 'Comment not found.' });
   if (String(comment.author) !== String(req.user._id)) return res.status(403).json({ message: 'You can only delete your own comments.' });

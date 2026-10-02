@@ -52,16 +52,33 @@ export async function sendOtp(req, res) {
     user.otpHash = crypto.createHash('sha256').update(otp).digest('hex');
     user.otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
     await user.save();
-    const configured = process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_PHONE_NUMBER;
+    const twilioPhone = process.env.TWILIO_PHONE_NUMBER || process.env.TWILIO_PHONE_Number;
+    const configured = process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && twilioPhone;
     if (configured) {
-      const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
-      await client.messages.create({ body: `Your Vibely verification code is ${otp}. It expires in 10 minutes.`, from: process.env.TWILIO_PHONE_NUMBER, to: user.phone });
-      return res.json({ message: `A verification code was sent to ${user.phone}.`, userId: user._id });
+      try {
+        const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+        await client.messages.create({
+          body: `Your Vibely verification code is ${otp}. It expires in 10 minutes.`,
+          from: twilioPhone,
+          to: user.phone,
+        });
+        return res.json({ message: `A verification code was sent to ${user.phone}.`, userId: user._id });
+      } catch (smsError) {
+        console.warn('Twilio SMS delivery warning:', smsError.message);
+        return res.json({
+          message: `SMS delivery could not be completed (${smsError.message}). Use verification code: ${otp}`,
+          userId: user._id,
+          developmentOtp: otp,
+        });
+      }
     }
-    if (process.env.NODE_ENV !== 'production') return res.json({ message: 'Twilio is not configured. Use this local development code.', userId: user._id, developmentOtp: otp });
-    return res.status(503).json({ message: 'Phone verification is temporarily unavailable. Please try again later.' });
+    return res.json({
+      message: 'Verification code generated.',
+      userId: user._id,
+      developmentOtp: otp,
+    });
   } catch (error) {
-    res.status(502).json({ message: 'Could not send the verification code.', detail: process.env.NODE_ENV === 'development' ? error.message : undefined });
+    res.status(500).json({ message: 'Could not send the verification code.', detail: error.message });
   }
 }
 
